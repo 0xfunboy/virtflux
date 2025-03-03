@@ -25,5 +25,14 @@ pyvenv.cfg
 # ------------------------------------------------------------------------------
 # 4) Output artifacts (optional: keep if you want to version outputs)
 # ------------------------------------------------------------------------------
-outputs/
-models/
+# Ignore everything inside 'outputs' but keep the folder itself
+outputs/*
+!outputs/.gitignore
+
+# Ignore everything inside 'outputs/tts' but keep the folder itself
+outputs/tts/*
+!outputs/tts/.gitignore
+
+# Ignore everything inside 'models' but keep the folder itself
+models/*
+!models/.gitignore
