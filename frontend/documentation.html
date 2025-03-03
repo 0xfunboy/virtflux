@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Documentation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background-color: #121212;
+      color: #ffffff;
+    }
+    header, nav {
+      background-color: #1e1e1e;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+    }
+    nav a {
+      color: #ffffff;
+      text-decoration: none;
+      margin-right: 20px;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    section {
+      background: #1e1e1e;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 30px;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+    }
+    a.link-docs {
+      color: #4CAF50;
+      font-weight: bold;
+    }
+    pre {
+      background: #2c2c2c;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="documentation.html">Docs</a>
+    </nav>
+  </header>
+  <div class="container">
+    <h1>API Documentation</h1>
+    <section>
+      <h2>Overview</h2>
+      <p>
+        This page explains how to use the API for image analysis, image generation, and text-to-speech conversion.
+      </p>
+      <p>
+        For interactive documentation, visit 
+        <a class="link-docs" href="http://{{PUBLIC_IP}}:{{FRONTEND_PORT}}/docs" target="_blank">
+          Swagger Documentation
+        </a>.
+      </p>
+    </section>
+    <section>
+      <h2>Authentication</h2>
+      <p>
+        All API calls require an HTTP <code>Authorization</code> header with a valid Bearer token. Example:
+      </p>
+      <pre><code>Authorization: Bearer {{API_TOKEN}}</code></pre>
+    </section>
+    <section>
+      <h2>Main Endpoints</h2>
+      <h3>1) Analyze Image</h3>
+      <ul>
+        <li><strong>Method:</strong> <code>POST</code></li>
+        <li><strong>URL:</strong> <code>/analyze</code></li>
+        <li><strong>Body:</strong> multipart/form-data with key <code>file</code></li>
+        <li><strong>Optional Parameter:</strong> <code>analysis_model</code> ("blip-large", "opt-2.7b", "omnparser")</li>
+        <li><strong>Response:</strong> JSON with a <code>description</code> field</li>
+      </ul>
+      <h3>2) Generate Image</h3>
+      <ul>
+        <li><strong>Method:</strong> <code>POST</code></li>
+        <li><strong>URL:</strong> <code>/generate?prompt=...&model=...</code></li>
+        <li><strong>Parameters:</strong>
+          <ul>
+            <li><code>prompt</code>: Text describing the image</li>
+            <li><code>model</code>: "sd21", "flux", or "dreamlike"</li>
+          </ul>
+        </li>
+        <li><strong>Response:</strong> JSON with a <code>message</code> and an <code>image_url</code></li>
+      </ul>
+      <h3>3) Text-to-Speech (TTS)</h3>
+      <ul>
+        <li><strong>Method:</strong> <code>GET</code></li>
+        <li><strong>URL:</strong> <code>/tts?text=...&tts_backend=...&voice=...&lang=...</code></li>
+        <li><strong>Parameters:</strong>
+          <ul>
+            <li><code>text</code>: Text to convert to speech</li>
+            <li><code>tts_backend</code>: "pyttsx3" (default) or "transformers"</li>
+            <li><code>voice</code> and <code>lang</code>: Used only with pyttsx3</li>
+          </ul>
+        </li>
+        <li><strong>Response:</strong> JSON with a <code>message</code> and an <code>audio_url</code></li>
+      </ul>
+    </section>
+    <section>
+      <h2>Additional Info</h2>
+      <p>
+        For production usage under heavy load, consider using a reverse proxy with SSL, secure token management, caching, and load balancing.
+      </p>
+    </section>
+  </div>
+</body>
+</html>

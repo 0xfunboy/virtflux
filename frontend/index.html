@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Image Generator & Analyzer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 50px;
+      background-color: #121212;
+      color: #ffffff;
+    }
+    .container {
+      background: #1e1e1e;
+      padding: 30px;
+      border-radius: 10px;
+      width: 40%;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+    }
+    input, button, select, textarea {
+      margin-top: 15px;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 5px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    button {
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    #preview, #generatedImage, #ttsAudio {
+      max-width: 100%;
+      display: block;
+      margin: 20px auto;
+      border-radius: 8px;
+    }
+    .section {
+      border-bottom: 1px solid #333;
+      padding-bottom: 20px;
+      margin-bottom: 20px;
+    }
+    #result, #genResult, #ttsResult {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🖼️ AI Image Generator & Analyzer</h1>
+
+    <!-- Image Analysis Section -->
+    <div class="section">
+      <h2>📸 Analyze an Image</h2>
+      <select id="analysisModelSelect">
+        <option value="blip-large">BLIP Large</option>
+        <option value="opt-2.7b">BLIP2 OPT 2.7b</option>
+        <option value="omnparser">OmniParser</option>
+      </select>
+      <input type="file" id="imageInput" accept="image/*" />
+      <br />
+      <img id="preview" src="" alt="Image Preview" style="display:none;" />
+      <br />
+      <button onclick="uploadImage()">🔍 Analyze</button>
+      <p id="result">⏳ Waiting for analysis...</p>
+    </div>
+
+    <!-- Image Generation Section -->
+    <div class="section">
+      <h2>🎨 Generate an Image</h2>
+      <input type="text" id="promptInput" placeholder="Enter your prompt here..." />
+      <br />
+      <label for="modelSelect">Choose Model:</label>
+      <select id="modelSelect">
+        <option value="sd21">Stable Diffusion 2.1</option>
+        <option value="flux">FLUX Schnell</option>
+        <option value="dreamlike">Dreamlike Photoreal 2.0</option>
+      </select>
+      <button onclick="generateImage()">🚀 Generate</button>
+      <p id="genResult">⏳ Waiting for generation...</p>
+      <img id="generatedImage" src="" alt="Generated Image" style="display:none;" />
+    </div>
+
+    <!-- TTS Section -->
+    <div class="section">
+      <h2>🎙️ Text-to-Speech</h2>
+      <textarea id="ttsInput" placeholder="Enter text to convert to speech..."></textarea>
+      <label for="voiceSelect">Voice:</label>
+      <select id="voiceSelect">
+        <option value="male">Male</option>
+        <option value="female">Female</option>
+      </select>
+      <label for="langSelect">Language/Accent:</label>
+      <select id="langSelect">
+        <option value="en-US">English (US)</option>
+        <option value="en-GB">English (UK)</option>
+        <option value="it-IT">Italian</option>
+      </select>
+      <button onclick="generateTTS()">🔊 Convert to Speech</button>
+      <p id="ttsResult">⏳ Waiting for TTS...</p>
+      <audio id="ttsAudio" controls style="display:none;">
+        <source id="ttsAudioSource" src="" type="audio/wav" />
+        Your browser does not support the audio element.
+      </audio>
+    </div>
+  </div>
+
+  <script>
+    // Use the browser's current hostname to build the API config URL
+    const API_PORT = "2727"; // Known API port; adjust as needed.
+    const currentHostname = window.location.hostname;
+    const API_CONFIG_URL = `http://${currentHostname}:${API_PORT}/config`;
+
+    let API_URL = "";
+    let API_TOKEN = "";
+
+    // Fetch API configuration from the API server
+    async function fetchConfig() {
+      try {
+        const response = await fetch(API_CONFIG_URL);
+        if (!response.ok) throw new Error("Error fetching configuration");
+        const config = await response.json();
+        API_URL = config.api_url;       // e.g., "http://yourdomain:2727"
+        API_TOKEN = config.api_token;   // e.g., "Bearer token123"
+        console.log("✅ Config loaded:", API_URL, API_TOKEN);
+      } catch (err) {
+        console.error("❌ Failed to load API configuration:", err);
+      }
+    }
+
+    // Fetch configuration on page load
+    fetchConfig();
+
+    async function uploadImage() {
+      const fileInput = document.getElementById("imageInput");
+      const resultElem = document.getElementById("result");
+      const preview = document.getElementById("preview");
+      const analysisModel = document.getElementById("analysisModelSelect").value;
+
+      if (!fileInput.files.length) {
+        alert("Please select an image!");
+        return;
+      }
+      const file = fileInput.files[0];
+      preview.src = URL.createObjectURL(file);
+      preview.style.display = "block";
+      resultElem.innerText = "⏳ Analyzing...";
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const response = await fetch(`${API_URL}/analyze?analysis_model=${analysisModel}`, {
+          method: "POST",
+          headers: { "Authorization": API_TOKEN },
+          body: formData
+        });
+        if (!response.ok) throw new Error(`Server error: ${response.status}`);
+        const data = await response.json();
+        resultElem.innerText = "✅ Result: " + data.description;
+      } catch (err) {
+        resultElem.innerText = "❌ Analysis failed!";
+        console.error(err);
+      }
+    }
+
+    async function generateImage() {
+      const prompt = document.getElementById("promptInput").value.trim();
+      const model = document.getElementById("modelSelect").value;
+      const genResultElem = document.getElementById("genResult");
+      const generatedImage = document.getElementById("generatedImage");
+
+      if (!prompt) {
+        alert("Please enter a prompt!");
+        return;
+      }
+      genResultElem.innerText = "⏳ Generating image...";
+
+      try {
+        const response = await fetch(`${API_URL}/generate?prompt=${encodeURIComponent(prompt)}&model=${model}`, {
+          method: "POST",
+          headers: { "Authorization": API_TOKEN }
+        });
+        if (!response.ok) throw new Error(`Server error: ${response.status}`);
+        const data = await response.json();
+        if (data.image_url) {
+          generatedImage.src = data.image_url;
+          generatedImage.style.display = "block";
+          genResultElem.innerText = "✅ Image Generated!";
+        } else {
+          genResultElem.innerText = "❌ Generation failed!";
+        }
+      } catch (err) {
+        genResultElem.innerText = "❌ Server error!";
+        console.error(err);
+      }
+    }
+
+    async function generateTTS() {
+      const text = document.getElementById("ttsInput").value.trim();
+      const voice = document.getElementById("voiceSelect").value;
+      const lang = document.getElementById("langSelect").value;
+      const ttsResultElem = document.getElementById("ttsResult");
+      const ttsAudio = document.getElementById("ttsAudio");
+      const ttsAudioSource = document.getElementById("ttsAudioSource");
+
+      if (!text) {
+        alert("Please enter some text!");
+        return;
+      }
+      ttsResultElem.innerText = "⏳ Generating speech...";
+
+      try {
+        const response = await fetch(`${API_URL}/tts?text=${encodeURIComponent(text)}&voice=${voice}&lang=${lang}`, {
+          method: "GET",
+          headers: { "Authorization": API_TOKEN }
+        });
+        if (!response.ok) throw new Error(`Server error: ${response.status}`);
+        const data = await response.json();
+        if (data.audio_url) {
+          ttsAudioSource.src = data.audio_url;
+          ttsAudio.load();
+          ttsAudio.style.display = "block";
+          ttsResultElem.innerText = "✅ Speech Generated!";
+        } else {
+          ttsResultElem.innerText = "❌ TTS failed!";
+        }
+      } catch (err) {
+        ttsResultElem.innerText = "❌ Server error!";
+        console.error(err);
+      }
+    }
+  </script>
+</body>
+</html>
