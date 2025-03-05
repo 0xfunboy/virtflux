@@ -1,15 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>API Documentation</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 0;
       background-color: #121212;
       color: #ffffff;
+      margin: 0;
+      padding: 0;
     }
     header, nav {
       background-color: #1e1e1e;
@@ -28,7 +29,7 @@
     .container {
       max-width: 800px;
       margin: 40px auto;
-      padding: 0 20px;
+      padding: 20px;
     }
     h1, h2 {
       text-align: center;
@@ -39,10 +40,6 @@
       border-radius: 10px;
       margin-bottom: 30px;
       box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
-    }
-    a.link-docs {
-      color: #4CAF50;
-      font-weight: bold;
     }
     pre {
       background: #2c2c2c;
@@ -64,13 +61,15 @@
     <section>
       <h2>Overview</h2>
       <p>
-        This page explains how to use the API for image analysis, image generation, and text-to-speech conversion.
+        This API provides endpoints for:
       </p>
+      <ul>
+        <li>Image Analysis using BLIP Large, BLIP2 OPT 2.7b, or Donut Base. <strong>Note:</strong> For Donut Base, a task prompt is required.</li>
+        <li>Image Generation using Stable Diffusion 2.1, FLUX, or Dreamlike Photoreal 2.0.</li>
+        <li>Text-to-Speech using Kokoro TTS, with support for WAV or MP3 output.</li>
+      </ul>
       <p>
-        For interactive documentation, visit 
-        <a class="link-docs" href="http://{{PUBLIC_IP}}:{{FRONTEND_PORT}}/docs" target="_blank">
-          Swagger Documentation
-        </a>.
+        Base URL: <span id="baseUrl"></span>
       </p>
     </section>
     <section>
@@ -81,47 +80,66 @@
       <pre><code>Authorization: Bearer {{API_TOKEN}}</code></pre>
     </section>
     <section>
-      <h2>Main Endpoints</h2>
+      <h2>Endpoints</h2>
       <h3>1) Analyze Image</h3>
       <ul>
-        <li><strong>Method:</strong> <code>POST</code></li>
+        <li><strong>Method:</strong> POST</li>
         <li><strong>URL:</strong> <code>/analyze</code></li>
-        <li><strong>Body:</strong> multipart/form-data with key <code>file</code></li>
-        <li><strong>Optional Parameter:</strong> <code>analysis_model</code> ("blip-large", "opt-2.7b", "omnparser")</li>
-        <li><strong>Response:</strong> JSON with a <code>description</code> field</li>
+        <li><strong>Body:</strong> multipart/form-data with key <code>file</code> containing the image</li>
+        <li><strong>Query Parameters:</strong>
+          <ul>
+            <li><code>analysis_model</code>: Choose from <code>blip-large</code>, <code>opt-2.7b</code>, or <code>donut-base</code></li>
+            <li><code>prompt</code>: (Required for <code>donut-base</code>) Task prompt for document understanding</li>
+          </ul>
+        </li>
+        <li><strong>Response:</strong> JSON with a <code>description</code> field containing the analysis result</li>
       </ul>
       <h3>2) Generate Image</h3>
       <ul>
-        <li><strong>Method:</strong> <code>POST</code></li>
-        <li><strong>URL:</strong> <code>/generate?prompt=...&model=...</code></li>
+        <li><strong>Method:</strong> POST</li>
+        <li><strong>URL:</strong> <code>/generate</code> with query parameters <code>prompt</code> and <code>model</code></li>
         <li><strong>Parameters:</strong>
           <ul>
-            <li><code>prompt</code>: Text describing the image</li>
-            <li><code>model</code>: "sd21", "flux", or "dreamlike"</li>
+            <li><code>prompt</code>: Text prompt describing the desired image</li>
+            <li><code>model</code>: Choose from <code>sd21</code>, <code>flux</code>, or <code>dreamlike</code></li>
           </ul>
         </li>
         <li><strong>Response:</strong> JSON with a <code>message</code> and an <code>image_url</code></li>
       </ul>
-      <h3>3) Text-to-Speech (TTS)</h3>
+      <h3>3) Text-to-Speech (Kokoro)</h3>
       <ul>
-        <li><strong>Method:</strong> <code>GET</code></li>
-        <li><strong>URL:</strong> <code>/tts?text=...&tts_backend=...&voice=...&lang=...</code></li>
+        <li><strong>Method:</strong> GET</li>
+        <li><strong>URL:</strong> <code>/tts</code> with query parameters <code>text</code>, <code>voice</code>, and <code>fmt</code></li>
         <li><strong>Parameters:</strong>
           <ul>
-            <li><code>text</code>: Text to convert to speech</li>
-            <li><code>tts_backend</code>: "pyttsx3" (default) or "transformers"</li>
-            <li><code>voice</code> and <code>lang</code>: Used only with pyttsx3</li>
+            <li><code>text</code>: The text to be synthesized</li>
+            <li><code>voice</code>: Kokoro voice ID (e.g. "af_heart", "af_soul", "af_king")</li>
+            <li><code>fmt</code>: Output audio format: "wav" or "mp3"</li>
           </ul>
         </li>
         <li><strong>Response:</strong> JSON with a <code>message</code> and an <code>audio_url</code></li>
       </ul>
     </section>
     <section>
-      <h2>Additional Info</h2>
-      <p>
-        For production usage under heavy load, consider using a reverse proxy with SSL, secure token management, caching, and load balancing.
-      </p>
+      <h2>Usage Example (cURL)</h2>
+      <pre><code>
+curl -X POST "http://{BASE_URL}/analyze?analysis_model=donut-base&amp;prompt=%3CsYourTaskPrompt%3E" \
+-H "Authorization: Bearer {API_TOKEN}" \
+-F "file=@path_to_your_image.jpg"
+      </code></pre>
     </section>
   </div>
+  <script>
+    async function loadConfig() {
+      try {
+        const response = await fetch(`http://${window.location.hostname}:2727/config`);
+        const config = await response.json();
+        document.getElementById("baseUrl").innerText = config.api_url;
+      } catch (e) {
+        console.error("Failed to load API config:", e);
+      }
+    }
+    loadConfig();
+  </script>
 </body>
 </html>

@@ -52,6 +52,9 @@
       margin-top: 10px;
       font-weight: bold;
     }
+    .hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -61,11 +64,14 @@
     <!-- Image Analysis Section -->
     <div class="section">
       <h2>📸 Analyze an Image</h2>
-      <select id="analysisModelSelect">
+      <select id="analysisModelSelect" onchange="togglePromptField()">
         <option value="blip-large">BLIP Large</option>
         <option value="opt-2.7b">BLIP2 OPT 2.7b</option>
-        <option value="omnparser">OmniParser</option>
+        <option value="donut-base">Donut Base</option>
       </select>
+      <div id="promptField" class="hidden">
+        <input type="text" id="taskPromptInput" placeholder="Enter task prompt for Donut Base" />
+      </div>
       <input type="file" id="imageInput" accept="image/*" />
       <br />
       <img id="preview" src="" alt="Image Preview" style="display:none;" />
@@ -90,20 +96,20 @@
       <img id="generatedImage" src="" alt="Generated Image" style="display:none;" />
     </div>
 
-    <!-- TTS Section -->
+    <!-- Text-to-Speech (TTS) Section -->
     <div class="section">
-      <h2>🎙️ Text-to-Speech</h2>
+      <h2>🎙️ Text-to-Speech (Kokoro)</h2>
       <textarea id="ttsInput" placeholder="Enter text to convert to speech..."></textarea>
-      <label for="voiceSelect">Voice:</label>
+      <label for="voiceSelect">Kokoro Voice:</label>
       <select id="voiceSelect">
-        <option value="male">Male</option>
-        <option value="female">Female</option>
+        <option value="af_heart">af_heart</option>
+        <option value="af_soul">af_soul</option>
+        <option value="af_king">af_king</option>
       </select>
-      <label for="langSelect">Language/Accent:</label>
-      <select id="langSelect">
-        <option value="en-US">English (US)</option>
-        <option value="en-GB">English (UK)</option>
-        <option value="it-IT">Italian</option>
+      <label for="fmtSelect">Audio Format:</label>
+      <select id="fmtSelect">
+        <option value="wav">WAV</option>
+        <option value="mp3">MP3</option>
       </select>
       <button onclick="generateTTS()">🔊 Convert to Speech</button>
       <p id="ttsResult">⏳ Waiting for TTS...</p>
@@ -115,51 +121,63 @@
   </div>
 
   <script>
-    // Use the browser's current hostname to build the API config URL
-    const API_PORT = "2727"; // Known API port; adjust as needed.
+    const API_PORT = "2727";
     const currentHostname = window.location.hostname;
     const API_CONFIG_URL = `http://${currentHostname}:${API_PORT}/config`;
-
     let API_URL = "";
     let API_TOKEN = "";
 
-    // Fetch API configuration from the API server
     async function fetchConfig() {
       try {
         const response = await fetch(API_CONFIG_URL);
         if (!response.ok) throw new Error("Error fetching configuration");
         const config = await response.json();
-        API_URL = config.api_url;       // e.g., "http://yourdomain:2727"
-        API_TOKEN = config.api_token;   // e.g., "Bearer token123"
+        API_URL = config.api_url;
+        API_TOKEN = config.api_token;
         console.log("✅ Config loaded:", API_URL, API_TOKEN);
       } catch (err) {
         console.error("❌ Failed to load API configuration:", err);
       }
     }
-
-    // Fetch configuration on page load
     fetchConfig();
+
+    function togglePromptField() {
+      const analysisModel = document.getElementById("analysisModelSelect").value;
+      const promptField = document.getElementById("promptField");
+      if (analysisModel === "donut-base") {
+        promptField.classList.remove("hidden");
+      } else {
+        promptField.classList.add("hidden");
+      }
+    }
 
     async function uploadImage() {
       const fileInput = document.getElementById("imageInput");
       const resultElem = document.getElementById("result");
       const preview = document.getElementById("preview");
       const analysisModel = document.getElementById("analysisModelSelect").value;
-
+      const taskPromptInput = document.getElementById("taskPromptInput");
+      const prompt = (analysisModel === "donut-base") ? taskPromptInput.value.trim() : "";
       if (!fileInput.files.length) {
         alert("Please select an image!");
+        return;
+      }
+      if (analysisModel === "donut-base" && !prompt) {
+        alert("Please enter a task prompt for Donut Base analysis.");
         return;
       }
       const file = fileInput.files[0];
       preview.src = URL.createObjectURL(file);
       preview.style.display = "block";
       resultElem.innerText = "⏳ Analyzing...";
-
       const formData = new FormData();
       formData.append("file", file);
-
+      let url = `${API_URL}/analyze?analysis_model=${analysisModel}`;
+      if (analysisModel === "donut-base") {
+        url += `&prompt=${encodeURIComponent(prompt)}`;
+      }
       try {
-        const response = await fetch(`${API_URL}/analyze?analysis_model=${analysisModel}`, {
+        const response = await fetch(url, {
           method: "POST",
           headers: { "Authorization": API_TOKEN },
           body: formData
@@ -178,18 +196,16 @@
       const model = document.getElementById("modelSelect").value;
       const genResultElem = document.getElementById("genResult");
       const generatedImage = document.getElementById("generatedImage");
-
       if (!prompt) {
         alert("Please enter a prompt!");
         return;
       }
       genResultElem.innerText = "⏳ Generating image...";
-
       try {
-        const response = await fetch(`${API_URL}/generate?prompt=${encodeURIComponent(prompt)}&model=${model}`, {
-          method: "POST",
-          headers: { "Authorization": API_TOKEN }
-        });
+        const response = await fetch(
+          `${API_URL}/generate?prompt=${encodeURIComponent(prompt)}&model=${model}`,
+          { method: "POST", headers: { "Authorization": API_TOKEN } }
+        );
         if (!response.ok) throw new Error(`Server error: ${response.status}`);
         const data = await response.json();
         if (data.image_url) {
@@ -208,25 +224,24 @@
     async function generateTTS() {
       const text = document.getElementById("ttsInput").value.trim();
       const voice = document.getElementById("voiceSelect").value;
-      const lang = document.getElementById("langSelect").value;
+      const fmt = document.getElementById("fmtSelect").value;
       const ttsResultElem = document.getElementById("ttsResult");
       const ttsAudio = document.getElementById("ttsAudio");
       const ttsAudioSource = document.getElementById("ttsAudioSource");
-
       if (!text) {
         alert("Please enter some text!");
         return;
       }
       ttsResultElem.innerText = "⏳ Generating speech...";
-
       try {
-        const response = await fetch(`${API_URL}/tts?text=${encodeURIComponent(text)}&voice=${voice}&lang=${lang}`, {
+        const response = await fetch(`${API_URL}/tts?text=${encodeURIComponent(text)}&voice=${voice}&fmt=${fmt}`, {
           method: "GET",
           headers: { "Authorization": API_TOKEN }
         });
         if (!response.ok) throw new Error(`Server error: ${response.status}`);
         const data = await response.json();
         if (data.audio_url) {
+          ttsAudioSource.type = (fmt === "mp3") ? "audio/mpeg" : "audio/wav";
           ttsAudioSource.src = data.audio_url;
           ttsAudio.load();
           ttsAudio.style.display = "block";
