@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=160&section=header&text=virtflux&fontSize=60&fontColor=fff&animation=fadeIn&fontAlignY=38&desc=Virtflux%20is%20an%20alpha-stage%20AI%20project%20that%20provides%20Image%20Analysis%2C%20Image%20G...&descAlignY=60&descSize=14" width="100%"/>
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=160&section=header&text=virtflux&fontSize=60&fontColor=fff&animation=fadeIn&fontAlignY=38&desc=Virtflux%20is%20an%20alpha-stage%20AI%20project%20that%20provides%20Image%20Analysis%2C%20Image...&descAlignY=60&descSize=14" width="100%"/>
 
 <img src="https://skillicons.dev/icons?i=py,html,flask&theme=dark" alt="Tech stack"/>
 
