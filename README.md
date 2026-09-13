@@ -87,7 +87,7 @@ Access the frontend at `http://x.x.x.x:2780/index.html`.
 
 ---
 ## **License**
-This project is licensed under the **GPL v3.0**.
+Previously released GPL-covered code retains its **GPL v3.0** permissions. See the [GPL text](LICENSES/GPL-3.0.txt) and [LICENSING.md](LICENSING.md) for the separate, limited scope of the non-commercial document.
 
 ---
 ## **Contributing**
